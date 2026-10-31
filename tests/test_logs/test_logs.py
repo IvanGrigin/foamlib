@@ -11,7 +11,14 @@ from pathlib import Path
 
 import pytest
 
-from foamlib.logs import DIAGNOSTICS, FoamLog, Kind, SolverSource, Status, Trend
+from foamlib.logs import (
+    DIAGNOSTICS,
+    FoamLog,
+    Kind,
+    SolverSource,
+    Status,
+    Trend,
+)
 
 LOGS = Path(__file__).parent / "logs"
 
@@ -186,6 +193,21 @@ def test_diagnostics_table_is_well_formed() -> None:
     # DiagnosticSpec.__post_init__ enforces group counts; assert the table size
     # so an accidental deletion is noticed
     assert len(DIAGNOSTICS) == 56
+
+
+def test_time_line_in_crank_angle_degrees() -> None:
+    """Engine cases (``userTime { type engine; }``) print "Time = -180CAD".
+
+    From ``engineTime.C``; no public log with this format has been seen yet.
+    """
+    log = FoamLog.loads(
+        "Time = -180CAD\n"
+        "ExecutionTime = 1 s  ClockTime = 1 s\n"
+        "Time = -179.5CAD\n"
+        "ExecutionTime = 2 s  ClockTime = 2 s\n"
+    )
+    assert log.n_steps == 2
+    assert log.last_time == -179.5
 
 
 @pytest.mark.parametrize("name", [p.name for p in sorted(LOGS.iterdir())])
